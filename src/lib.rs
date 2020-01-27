@@ -1,7 +1,9 @@
 extern crate reqwest;
+extern crate serde_json;
 mod message;
 
 use message::{SMSResponse, SMSCreditResponse, SMSRequestPayload, RequestMethods};
+use reqwest::{Error, Response};
 
 
 const BASE_URL: &str = "https://jusibe.com/smsapi/";
@@ -28,43 +30,49 @@ impl Client {
         }
     }
     
-
-    pub async fn send_sms(&self, to: &str, from: &str, message: &str) -> &SMSResponse<'_> {
+    /// send SMS to a single mobile number
+    pub fn send_sms(&self, to: &str, from: &str, message: &str) -> String {
         let endpoint = "send_sms";
-        let url = format!("{}/{}", BASE_URL, endpoint);
+        let url = format!("{}{}", BASE_URL, endpoint);
         let payload = SMSRequestPayload{
             to: to,
             from: from,
             message: message
         };
-
-        // let request = reqwest::Client::new();
-        // let response = request.post(url)
-        //     .json(&payload)
-        //     .send()
-        //     .await?;
-        
+        let response = self.send_request(RequestMethods::Post, &url, Some(&payload));
         let sms_response = &SMSResponse{
             status: "true",
             message_id: "234",
             credit_used: 23
         };
-        return sms_response
+        println!("Jusibe response = {:?}", response);
+        let serialized = serde_json::to_string(sms_response).unwrap();
+        return serialized;
+    }
+
+    pub fn available_credits(&self) -> Result<String, Error> {
+        let endpoint = "get_credits";
+        let url = format!("{}{}", BASE_URL, endpoint);
+
+        return self.send_request(RequestMethods::Get, &url, None);
+        // println!("Jusibe response = {:?}", response);
     }
 
     #[tokio::main]
-    async fn send_request(&self, method: RequestMethods, url: &str, payload: &SMSRequestPayload<'_>)  -> Result<(), reqwest::Error> {
+    async fn send_request<T>(&self, method: RequestMethods, url: &str, payload: Option<&SMSRequestPayload<'_>>)  -> Result<String, Error> {
     
         let request = reqwest::Client::new();
 
-        let new_request = match method {
-            RequestMethods::Get => request.get(url),
-            RequestMethods::Post => request.post(url).json(&payload),
-        };
+        println!("{} --- {}", self.public_key, self.access_token);
+        println!("{:?}", payload);
 
-        let response = new_request.send().await?;
-        println!("Jusibe response = {:?}", response);
-        Ok(())
+        let new_request = match method {
+            RequestMethods::Get => request.get(url).basic_auth(&self.public_key, Some(&self.access_token)),
+            RequestMethods::Post => request.post(url).basic_auth(&self.public_key, Some(&self.access_token)).json(&payload),
+        };
+        let response = new_request.send().await?.text().await?;
+        println!("we are here {}", response);
+        Ok(response)
     }
 }
 
