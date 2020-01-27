@@ -3,15 +3,15 @@ extern crate serde;
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct SMSResponse <'a> {
-  pub status: &'a str,
-  pub message_id: &'a str,
+pub struct SMSResponse {
+  pub status: String,
+  pub message_id: String,
   pub credit_used: u32
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct SMSCreditResponse <'a>{
-  credits: &'a str
+pub struct SMSCreditResponse {
+  credits: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -25,4 +25,5 @@ pub enum RequestMethods {
   Get,
   Post,
 }
+
 

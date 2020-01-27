@@ -3,7 +3,7 @@ extern crate serde_json;
 mod message;
 
 use message::{SMSResponse, SMSCreditResponse, SMSRequestPayload, RequestMethods};
-use reqwest::{Error, Response};
+use reqwest::{Error, Response, StatusCode};
 
 
 const BASE_URL: &str = "https://jusibe.com/smsapi/";
@@ -13,14 +13,16 @@ pub struct Client {
     pub public_key: String
 }
 
-// enum definition for different kinds exceptions that can be thrown for unsuccessful request
-#[derive(Debug)]
-pub enum JusibeException {
-    ConnectionError,
-    BadRequestError,
-    InvalidCredentialError
+pub enum JusibeError {
+    RequestError
 }
 
+
+impl From<reqwest::Error> for JusibeError {
+    fn from(err: reqwest::Error) -> JusibeError {
+        JusibeError::RequestError
+    }
+}
 
 impl Client {
     pub fn new(access_token: &str, public_key: &str) -> Client {
@@ -31,7 +33,7 @@ impl Client {
     }
     
     /// send SMS to a single mobile number
-    pub fn send_sms(&self, to: &str, from: &str, message: &str) -> String {
+    pub fn send_sms(&self, to: &str, from: &str, message: &str) -> Result<SMSResponse, JusibeError> {
         let endpoint = "send_sms";
         let url = format!("{}{}", BASE_URL, endpoint);
         let payload = SMSRequestPayload{
@@ -39,40 +41,46 @@ impl Client {
             from: from,
             message: message
         };
-        let response = self.send_request(RequestMethods::Post, &url, Some(&payload));
-        let sms_response = &SMSResponse{
-            status: "true",
-            message_id: "234",
-            credit_used: 23
-        };
-        println!("Jusibe response = {:?}", response);
-        let serialized = serde_json::to_string(sms_response).unwrap();
-        return serialized;
+        self.send_request(RequestMethods::Post, &url, Some(&payload))
     }
 
-    pub fn available_credits(&self) -> Result<String, Error> {
+    pub fn available_credits(&self) -> Result<SMSCreditResponse, JusibeError> {
         let endpoint = "get_credits";
         let url = format!("{}{}", BASE_URL, endpoint);
 
         return self.send_request(RequestMethods::Get, &url, None);
-        // println!("Jusibe response = {:?}", response);
     }
 
-    #[tokio::main]
-    async fn send_request<T>(&self, method: RequestMethods, url: &str, payload: Option<&SMSRequestPayload<'_>>)  -> Result<String, Error> {
     
-        let request = reqwest::Client::new();
+    async fn send_request<T>(&self, method: RequestMethods, url: &str, payload: Option<&SMSRequestPayload<'_>>)  -> Result<T, JusibeError> 
+    where 
+        T: serde::de::DeserializeOwned,
 
-        println!("{} --- {}", self.public_key, self.access_token);
-        println!("{:?}", payload);
+    {
+    
+            let request = reqwest::Client::new();
 
-        let new_request = match method {
-            RequestMethods::Get => request.get(url).basic_auth(&self.public_key, Some(&self.access_token)),
-            RequestMethods::Post => request.post(url).basic_auth(&self.public_key, Some(&self.access_token)).json(&payload),
-        };
-        let response = new_request.send().await?.text().await?;
-        println!("we are here {}", response);
-        Ok(response)
+            println!("{} --- {}", self.public_key, self.access_token);
+            println!("{:?}", payload);
+
+            let new_request = match method {
+                RequestMethods::Get => request.get(url).basic_auth(&self.public_key, Some(&self.access_token)),
+                RequestMethods::Post => request.post(url).basic_auth(&self.public_key, Some(&self.access_token)).json(&payload),
+            };
+
+            let response = new_request.send().await?;
+
+            match response.status() {
+                StatusCode::OK => (),
+                StatusCode::BAD_REQUEST => return Err(JusibeError::RequestError),
+                StatusCode::UNAUTHORIZED => return Err(JusibeError::RequestError)
+            };
+
+            let response_text = response.text().await?;
+
+            let decoded: T = serde_json::from_str(&response_text).unwrap();
+
+            Ok::<T, JusibeError>(decoded)
     }
 }
 
