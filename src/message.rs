@@ -1,6 +1,8 @@
 extern crate serde;
+extern crate reqwest;
 
 use serde::{Serialize, Deserialize};
+use reqwest::StatusCode;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SMSResponse {
@@ -28,17 +30,21 @@ pub enum RequestMethods {
 
 #[derive(Debug)]
 pub enum JusibeError {
-    InvalidCredentialError,
-    BadRequestError
+  InvalidCredentialError,
+  BadRequestError,
+  NoError,
+  RequestError
 }
 
 
 impl From<reqwest::Error> for JusibeError {
     fn from(err: reqwest::Error) -> JusibeError {
         match err.status() {
-            _BadRequest => JusibeError::BadRequestError,
-            Unauthorized => JusibeError::InvalidCredentialError
-        }
+            Some(StatusCode::BAD_REQUEST) => JusibeError::BadRequestError,
+            Some(StatusCode::UNAUTHORIZED) => JusibeError::InvalidCredentialError,
+            None => JusibeError::NoError,
+            _  => JusibeError::RequestError
+        } 
     }
 }
 
