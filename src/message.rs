@@ -9,9 +9,9 @@ pub struct SMSResponse {
   pub credit_used: u32
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SMSCreditResponse {
-  credits: String
+  sms_credits: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -26,4 +26,19 @@ pub enum RequestMethods {
   Post,
 }
 
+#[derive(Debug)]
+pub enum JusibeError {
+    InvalidCredentialError,
+    BadRequestError
+}
+
+
+impl From<reqwest::Error> for JusibeError {
+    fn from(err: reqwest::Error) -> JusibeError {
+        match err.status() {
+            _BadRequest => JusibeError::BadRequestError,
+            Unauthorized => JusibeError::InvalidCredentialError
+        }
+    }
+}
 

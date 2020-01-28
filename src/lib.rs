@@ -2,8 +2,8 @@ extern crate reqwest;
 extern crate serde_json;
 mod message;
 
-use message::{SMSResponse, SMSCreditResponse, SMSRequestPayload, RequestMethods};
-use reqwest::{Error, Response, StatusCode};
+use message::{SMSResponse, SMSCreditResponse, SMSRequestPayload, RequestMethods, JusibeError};
+use reqwest::{StatusCode};
 
 
 const BASE_URL: &str = "https://jusibe.com/smsapi/";
@@ -13,16 +13,6 @@ pub struct Client {
     pub public_key: String
 }
 
-pub enum JusibeError {
-    RequestError
-}
-
-
-impl From<reqwest::Error> for JusibeError {
-    fn from(err: reqwest::Error) -> JusibeError {
-        JusibeError::RequestError
-    }
-}
 
 impl Client {
     pub fn new(access_token: &str, public_key: &str) -> Client {
@@ -33,7 +23,8 @@ impl Client {
     }
     
     /// send SMS to a single mobile number
-    pub fn send_sms(&self, to: &str, from: &str, message: &str) -> Result<SMSResponse, JusibeError> {
+    #[tokio::main]
+    pub async fn send_sms(&self, to: &str, from: &str, message: &str) -> Result<SMSResponse, JusibeError> {
         let endpoint = "send_sms";
         let url = format!("{}{}", BASE_URL, endpoint);
         let payload = SMSRequestPayload{
@@ -41,14 +32,16 @@ impl Client {
             from: from,
             message: message
         };
-        self.send_request(RequestMethods::Post, &url, Some(&payload))
+        self.send_request(RequestMethods::Post, &url, Some(&payload)).await
     }
 
-    pub fn available_credits(&self) -> Result<SMSCreditResponse, JusibeError> {
+    /// Retrieve the availabe credits for a user account
+    #[tokio::main]
+    pub async fn available_credits(&self) -> Result<SMSCreditResponse, JusibeError> {
         let endpoint = "get_credits";
         let url = format!("{}{}", BASE_URL, endpoint);
 
-        return self.send_request(RequestMethods::Get, &url, None);
+        return self.send_request(RequestMethods::Get, &url, None).await
     }
 
     
@@ -60,9 +53,6 @@ impl Client {
     
             let request = reqwest::Client::new();
 
-            println!("{} --- {}", self.public_key, self.access_token);
-            println!("{:?}", payload);
-
             let new_request = match method {
                 RequestMethods::Get => request.get(url).basic_auth(&self.public_key, Some(&self.access_token)),
                 RequestMethods::Post => request.post(url).basic_auth(&self.public_key, Some(&self.access_token)).json(&payload),
@@ -72,15 +62,16 @@ impl Client {
 
             match response.status() {
                 StatusCode::OK => (),
-                StatusCode::BAD_REQUEST => return Err(JusibeError::RequestError),
-                StatusCode::UNAUTHORIZED => return Err(JusibeError::RequestError)
+                StatusCode::BAD_REQUEST => return Err(JusibeError::BadRequestError),
+                StatusCode::UNAUTHORIZED => return Err(JusibeError::InvalidCredentialError),
+                _ => ()
             };
 
             let response_text = response.text().await?;
 
             let decoded: T = serde_json::from_str(&response_text).unwrap();
 
-            Ok::<T, JusibeError>(decoded)
+            Ok(decoded)
     }
 }
 
