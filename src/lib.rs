@@ -63,7 +63,7 @@ impl Client {
     #[tokio::main]
     pub async fn delivery_status(&self, message_id: &str) -> Result<DeliveryStatusResponse, JusibeError> {
         let endpoint = "delivery_status";
-        let url = format!("{}{}/{}", BASE_URL, endpoint, message_id);
+        let url = format!("{}{}?message_id={}", BASE_URL, endpoint, message_id);
 
         self.send_request(RequestMethods::Get, &url, None).await
     }
@@ -84,9 +84,9 @@ impl Client {
 
     
     #[tokio::main]
-    pub async fn bulk_message_status(&self, bulk_message_id: &str) -> Result<BulkStatusResponse, JusibeError> {
+    pub async fn bulk_delivery_status(&self, bulk_message_id: &str) -> Result<BulkStatusResponse, JusibeError> {
         let endpoint = "bulk/status";
-        let url = format!("{}{}/{}", BASE_URL, endpoint, bulk_message_id);
+        let url = format!("{}{}?bulk_message_id={}", BASE_URL, endpoint, bulk_message_id);
         
         self.send_request(RequestMethods::Get, &url, None).await
     }
