@@ -36,6 +36,34 @@ pub enum JusibeError {
   RequestError
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DeliveryStatusResponse {
+  message_id: String,
+  status: String,
+  date_sent: String,
+  date_delivered: String
+}
+
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct BulkSMSResponse {
+  status: String,
+  bulk_message_id: String
+}
+
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct BulkStatusResponse {
+  bulk_message_id: String, 
+  status: String,
+  created: String,
+  processed: String,
+  total_numbers: String,
+  total_unique_numbers: String,
+  total_valid_numbers: String,
+  total_invalid_numbers: String
+}
+
 
 impl From<reqwest::Error> for JusibeError {
     fn from(err: reqwest::Error) -> JusibeError {
@@ -47,4 +75,5 @@ impl From<reqwest::Error> for JusibeError {
         } 
     }
 }
+
 

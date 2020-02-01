@@ -1,8 +1,10 @@
 extern crate reqwest;
 extern crate serde_json;
-mod message;
+mod utils;
 
-use message::{SMSResponse, SMSCreditResponse, SMSRequestPayload, RequestMethods, JusibeError};
+use utils::{SMSResponse, SMSCreditResponse, SMSRequestPayload,
+    RequestMethods, JusibeError, DeliveryStatusResponse, BulkSMSResponse, BulkStatusResponse};
+
 use reqwest::{StatusCode};
 
 
@@ -21,8 +23,13 @@ impl Client {
             public_key: public_key.to_string()
         }
     }
-    
+
+
     /// send SMS to a single mobile number
+    /// # Arguments
+    /// * `to` - the phone number to send the SMS
+    /// * `from` - a 11 character string reference that represents who sent the message
+    /// * `message` - the message body to be sent
     #[tokio::main]
     pub async fn send_sms(&self, to: &str, from: &str, message: &str) -> Result<SMSResponse, JusibeError> {
         let endpoint = "send_sms";
@@ -35,7 +42,11 @@ impl Client {
         self.send_request(RequestMethods::Post, &url, Some(&payload)).await
     }
 
+
+
     /// Retrieve the availabe credits for a user account
+    /// # Arguments
+    /// Returns the total available sms credits
     #[tokio::main]
     pub async fn available_credits(&self) -> Result<SMSCreditResponse, JusibeError> {
         let endpoint = "get_credits";
@@ -44,11 +55,47 @@ impl Client {
         return self.send_request(RequestMethods::Get, &url, None).await
     }
 
+
+
+    ///  Retrieve and check the delivery status sent to a single phone number
+    /// # Arguments
+    /// * `message_id` - the message ID that was returned when the SMS was sent initially
+    #[tokio::main]
+    pub async fn delivery_status(&self, message_id: &str) -> Result<DeliveryStatusResponse, JusibeError> {
+        let endpoint = "delivery_status";
+        let url = format!("{}{}/{}", BASE_URL, endpoint, message_id);
+
+        self.send_request(RequestMethods::Get, &url, None).await
+    }
+
+
+
+    #[tokio::main]
+    pub async fn send_bulk_sms(&self, to: &str, from: &str, message: &str) -> Result<BulkSMSResponse, JusibeError> {
+        let endpoint = "bulk/send_sms";
+        let url = format!("{}{}", BASE_URL, endpoint);
+        let payload = SMSRequestPayload{
+            to: to,
+            from: from,
+            message: message
+        };
+        self.send_request(RequestMethods::Post, &url, Some(&payload)).await
+    }
+
     
+    #[tokio::main]
+    pub async fn bulk_message_status(&self, bulk_message_id: &str) -> Result<BulkStatusResponse, JusibeError> {
+        let endpoint = "bulk/status";
+        let url = format!("{}{}/{}", BASE_URL, endpoint, bulk_message_id);
+        
+        self.send_request(RequestMethods::Get, &url, None).await
+    }
+    
+
+
     async fn send_request<T>(&self, method: RequestMethods, url: &str, payload: Option<&SMSRequestPayload<'_>>)  -> Result<T, JusibeError> 
     where 
         T: serde::de::DeserializeOwned,
-
     {
     
             let request = reqwest::Client::new();
@@ -74,11 +121,3 @@ impl Client {
             Ok(decoded)
     }
 }
-
-
-
-// #[cfg(test)]
-// mod tests {
-//     #[test]
-//     fn it_works() {
-//         assert_eq!(2 + 2, 4);
