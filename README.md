@@ -3,7 +3,7 @@
 
 ## Usage
 
-```rs
+```rust
 extern crate jusibe_rs as jusibe;
 
 use jusibe::Client;
@@ -12,25 +12,25 @@ let jusibe_client = Client::new("ACCESS_TOKEN", "PUBLIC_KEY");
 ```
 
 ### Send message to a phone number
-```rs
+```rust
  let response = jusibe_client.send_sms("0807XXXXXX", "mary jane", "New Message");
  println!("{:?}", response);
 ```
 
 ## Send bulk SMS message
-```rs
+```rust
  let response = jusibe_client.send_bulk_sms("0807XXXXXX,0808XXXXXX", "mary jane", "New Message");
  println!("{:?}", response);
 ```
 
 ### Get credit balance for a Jusibe account
-```rs
+```rust
 let available_credits = jusibe_client.available_credits();
 println!("{:?}", response);
 ```
 
 ### Get message status for receipient
-```rs
+```rust
 let status = jusibe_client.delivery_status(message_id);
 println!("{:?}", response);
 ```
