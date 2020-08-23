@@ -1,6 +1,6 @@
 # Jusibe-rs
   ### A Rust Client Library for Jusibe API
-
+  
 ## Usage
 
 ```rust
@@ -35,6 +35,8 @@ let status = jusibe_client.delivery_status(message_id);
 println!("{:?}", response);
 ```
 
+### Contribution
+The project is currently still in development and any help is appreciated to push the package to the finish line
 
 ## License
 
