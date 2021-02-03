@@ -92,7 +92,7 @@ impl JusibeClient {
     pub async fn bulk_delivery_status(&self, bulk_message_id: &str) -> Result<BulkStatusResponse, JusibeError> {
         let endpoint = "bulk/status";
         let url = format!("{}/{}?bulk_message_id={}", self.base_url, endpoint, bulk_message_id);
-        
+    
         self.send_request(RequestMethods::Get, &url, None).await
     }
     
@@ -106,17 +106,13 @@ impl JusibeClient {
     where 
         T: serde::de::DeserializeOwned,
     {
-    
         let request = reqwest::Client::new();
-
         let new_request = match method {
             RequestMethods::Get => request.get(url).basic_auth(&self.public_key, Some(&self.access_token)),
             RequestMethods::Post => request.post(url).basic_auth(&self.public_key, Some(&self.access_token)).json(&payload),
         };
-        println!("{:?}{:?}", new_request, payload);
 
         let response = new_request.send().await?;
-
         match response.status() {
             StatusCode::OK => (),
             StatusCode::BAD_REQUEST => return Err(JusibeError::BadRequestError),
