@@ -13,7 +13,7 @@ pub struct SMSResponse {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SMSCreditResponse {
-  sms_credits: String
+  pub sms_credits: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -75,5 +75,3 @@ impl From<reqwest::Error> for JusibeError {
         } 
     }
 }
-
-

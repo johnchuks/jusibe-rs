@@ -1,14 +1,14 @@
 # Jusibe-rs
-  ### A Rust Client Library for Jusibe API
+  ### A Simple Rust Client Library for the Jusibe API
   
 ## Usage
 
 ```rust
 extern crate jusibe_rs as jusibe;
 
-use jusibe::Client;
+use jusibe::JusibeClient;
 
-let jusibe_client = Client::new("ACCESS_TOKEN", "PUBLIC_KEY");
+let jusibe_client = JusibeClient::new("ACCESS_TOKEN", "PUBLIC_KEY");
 ```
 
 ### Send message to a phone number
