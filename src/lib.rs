@@ -62,7 +62,7 @@ impl JusibeClient {
     #[tokio::main]
     pub async fn delivery_status(&self, message_id: &str) -> Result<DeliveryStatusResponse, JusibeError> {
         let endpoint = "delivery_status";
-        let url = format!("{}/{}?message_id={}", BASE_URL, endpoint, message_id);
+        let url = format!("{}/{}?message_id={}", self.base_url, endpoint, message_id);
 
         self.send_request(RequestMethods::Get, &url, None).await
     }
@@ -75,7 +75,7 @@ impl JusibeClient {
     #[tokio::main]
     pub async fn send_bulk_sms(&self, to: &str, from: &str, message: &str) -> Result<BulkSMSResponse, JusibeError> {
         let endpoint = "bulk/send_sms";
-        let url = format!("{}/{}", BASE_URL, endpoint);
+        let url = format!("{}/{}", self.base_url, endpoint);
         let payload = SMSRequestPayload{
             to: to,
             from: from,
@@ -91,7 +91,7 @@ impl JusibeClient {
     #[tokio::main]
     pub async fn bulk_delivery_status(&self, bulk_message_id: &str) -> Result<BulkStatusResponse, JusibeError> {
         let endpoint = "bulk/status";
-        let url = format!("{}{}?bulk_message_id={}", BASE_URL, endpoint, bulk_message_id);
+        let url = format!("{}/{}?bulk_message_id={}", self.base_url, endpoint, bulk_message_id);
         
         self.send_request(RequestMethods::Get, &url, None).await
     }
@@ -190,20 +190,78 @@ mod tests {
         let server = MockServer::start();
         let mock = server.mock_async(|when, then| {
             when.method(GET)
-                .path("/get_credits")
+                .path("/delivery_status")
                 .header_exists("Authorization");
             then.status(200)
-                .json_body(json!({"sms_credits": "12"}));
+                .json_body(json!({"message_id": "xeqd6rrd2t4", "status": "Delivered", 
+                "date_sent": "2015-05-19 04:34:48", "date_delivered": "2015-05-19 04:35:05"}));
         }).await;
 
         let mut client = JusibeClient::new("access_key", "public_key");
         client.base_url = server.base_url();
 
-        let result = client.available_credits();
+        let result = client.delivery_status("xeqd6rrd26");
 
         //Assert
         mock.assert_async().await;
         assert_eq!(result.is_ok(), true);
-        assert_eq!(result.unwrap().sms_credits, "12")
+        assert_eq!(result.unwrap().message_id, "xeqd6rrd2t4");
+    }
+
+    #[async_std::test]
+    async fn test_send_bulk_sms_success() {
+        let server = MockServer::start();
+        let mock = server.mock_async(|when, then| {
+            when.method(POST)
+                .path("/bulk/send_sms")
+                .header_exists("Authorization");
+            then.status(200)
+                .json_body(json!({"bulk_message_id": "zeseqd6rrd2t4", "status": "Sent"}));
+        }).await;
+
+        let mut client = JusibeClient::new("access_key", "public_key");
+        client.base_url = server.base_url();
+
+        let result = client.send_bulk_sms("08073667142,0808145369", "mary jane", "New Message");
+
+        //Assert
+        mock.assert_async().await;
+        assert_eq!(result.is_ok(), true);
+        assert_eq!(result.unwrap().bulk_message_id, "zeseqd6rrd2t4");
+    }
+
+    #[async_std::test]
+    async fn test_bulk_delivery_status_success() {
+        let server = MockServer::start();
+        let mock = server.mock_async(|when, then| {
+            when.method(GET)
+                .path("/bulk/status")
+                .header_exists("Authorization");
+            then.status(200)
+                .json_body(json!({
+                    "bulk_message_id": "keseqd6rrd2t4",
+                    "status": "Completed",
+                    "created": "2019-04-02 15:23:13",
+                    "processed": "2019-04-02 15:25:03",
+                    "total_numbers": "2",
+                    "total_unique_numbers": "2",
+                    "total_valid_numbers": "3",
+                    "total_invalid_numbers": "0"
+                }));
+        }).await;
+
+        let mut client = JusibeClient::new("access_key", "public_key");
+        client.base_url = server.base_url();
+
+        let result = client.bulk_delivery_status("keseqd6rrdet4");
+
+        //Assert
+        mock.assert_async().await;
+        assert_eq!(result.is_ok(), true);
+        let response = result.unwrap();
+        assert_eq!(response.total_unique_numbers, "2");
+        assert_eq!(response.total_invalid_numbers, "0");
+        assert_eq!(response.total_valid_numbers, "3");
+        assert_eq!(response.processed, "2019-04-02 15:25:03");
     }
 }
