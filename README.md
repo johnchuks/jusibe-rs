@@ -1,3 +1,4 @@
+![jusibe-rs file path](https://github.com/johnchuks/jusibe-rs/workflows/Rust/badge.svg)
 # Jusibe-rs
   ### A Simple Rust Client Library for the Jusibe API
   
