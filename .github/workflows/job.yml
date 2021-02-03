@@ -1,17 +1,11 @@
 name: Rust
 
-on:
-  push:
-    branches: [ * ]
-  pull_request:
-    branches: [ master ]
-
+on: [push, pull_request]
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-
+  build_and_test:
     runs-on: ubuntu-latest
 
     steps:
